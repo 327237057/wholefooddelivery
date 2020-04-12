@@ -7,36 +7,43 @@ import time
 import os
 
 
+AMAZON_FRESH_CART_URL = "https://www.amazon.com/gp/buy/shipoptionselect/handlers/display.html?hasWorkingJavascript=1"
+
+
 def getWFSlot(productUrl):
-   headers = {
-       'User-Agent': 'Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36',
-   }
+    print("Start checking Amazon Fresh slots")
+    # You need to set 'executable_path' to the path of the webdriver
+    driver = webdriver.Chrome(
+        executable_path="/Users/sitengjin/Documents/github/painjst/wholefooddelivery/chromedriver")
+    driver.get(productUrl)
+    html = driver.page_source
+    soup = bs4.BeautifulSoup(html)
+    # You 60 seconds to sign in on the pop-up amazon page to view your cart
+    time.sleep(60)
+    refresh_count = 0
 
-   driver = webdriver.Chrome()
-   driver.get(productUrl)           
-   html = driver.page_source
-   soup = bs4.BeautifulSoup(html)
-   time.sleep(60)
-   no_open_slots = True
+    while True:
+        driver.refresh()
+        refresh_count += 1
+        print(f"Page refreshed, total refresh count = {refresh_count}")
+        html = driver.page_source
+        soup = bs4.BeautifulSoup(html)
+        time.sleep(2)
 
-   while no_open_slots:
-      driver.refresh()
-      print("refreshed")
-      html = driver.page_source
-      soup = bs4.BeautifulSoup(html)
-      time.sleep(2)
+        try:
+            open_slots = soup.find('div', class_='orderSlotExists').text()
+            if open_slots != "false":
+                print('SLOTS OPEN!')
+                os.system('say "Slots for delivery opened!"')
+                # You have 2 minutes to place your order, be quick!
+                time.sleep(120)
 
-      try:
-         open_slots = soup.find('div', class_ ='orderSlotExists').text()
-         if open_slots != "false":
-            print('SLOTS OPEN!')
-            os.system('say "Slots for delivery opened!"')
-            no_open_slots = False
-            time.sleep(1400)
-      except AttributeError:
-         continue
+        except AttributeError:
+            # There is no open slots, continue
+            continue
+    
+    return 0
 
 
-getWFSlot('https://www.amazon.com/gp/buy/shipoptionselect/handlers/display.html?hasWorkingJavascript=1')
-
-
+if __name__ == "__main__":
+    sys.exit(getWFSlot(AMAZON_FRESH_CART_URL))
